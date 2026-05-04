@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HackLT – Hakerių Pasaulis</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=VT323&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --green: #00ff41;
+      --green-dim: #00cc33;
+      --green-dark: #003300;
+      --bg: #0a0a0a;
+      --bg2: #0d0d0d;
+      --surface: #111411;
+      --surface2: #141a14;
+      --accent: #39ff14;
+      --red: #ff0033;
+      --cyan: #00ffff;
+      --text: #c8ffc8;
+      --text-dim: #5a8a5a;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+
+    /* MATRIX CANVAS */
+    #matrix-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      opacity: 0.07;
+      pointer-events: none;
+    }
+
+    /* SCANLINES */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,255,65,0.015) 2px,
+        rgba(0,255,65,0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: rgba(10,10,10,0.95);
+      border-bottom: 1px solid var(--green-dim);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 56px;
+      backdrop-filter: blur(6px);
+    }
+
+    .nav-logo {
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: 1.1rem;
+      color: var(--green);
+      text-shadow: 0 0 12px var(--green);
+      letter-spacing: 2px;
+    }
+
+    .nav-logo span { color: var(--red); }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 2rem;
+    }
+
+    nav ul li a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: color 0.2s, text-shadow 0.2s;
+      position: relative;
+    }
+
+    nav ul li a::after {
+      content: '';
+      position: absolute;
+      left: 0; bottom: -4px;
+      width: 0; height: 1px;
+      background: var(--green);
+      transition: width 0.3s;
+    }
+
+    nav ul li a:hover {
+      color: var(--green);
+      text-shadow: 0 0 8px var(--green);
+    }
+
+    nav ul li a:hover::after { width: 100%; }
+
+    /* ── HEADER ── */
+    header {
+      position: relative;
+      height: 100vh;
+      min-height: 600px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .header-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 50% 40%, rgba(0,255,65,0.08) 0%, transparent 70%),
+        linear-gradient(180deg, #000 0%, #020a02 60%, #000 100%);
+    }
+
+    .header-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,65,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,65,0.05) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridShift 20s linear infinite;
+    }
+
+    @keyframes gridShift {
+      from { background-position: 0 0; }
+      to { background-position: 60px 60px; }
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .header-tag {
+      font-size: 0.75rem;
+      color: var(--green-dim);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      animation: fadeIn 1s ease forwards;
+    }
+
+    .header-title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(3rem, 8vw, 7rem);
+      font-weight: 900;
+      line-height: 1;
+      color: var(--green);
+      text-shadow:
+        0 0 20px var(--green),
+        0 0 60px rgba(0,255,65,0.3);
+      margin-bottom: 0.5rem;
+      animation: glitch 5s infinite;
+    }
+
+    @keyframes glitch {
+      0%, 90%, 100% { transform: none; clip-path: none; }
+      92% { transform: translateX(-3px); clip-path: polygon(0 20%, 100% 20%, 100% 40%, 0 40%); color: var(--red); }
+      94% { transform: translateX(3px); clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%); color: var(--cyan); }
+      96% { transform: none; clip-path: none; color: var(--green); }
+    }
+
+    .header-sub {
+      font-family: 'VT323', monospace;
+      font-size: 1.8rem;
+      color: var(--text-dim);
+      margin-bottom: 2.5rem;
+      letter-spacing: 3px;
+    }
+
+    .header-sub .cursor {
+      display: inline-block;
+      width: 12px;
+      height: 1.4em;
+      background: var(--green);
+      vertical-align: bottom;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .btn {
+      display: inline-block;
+      padding: 0.8rem 2rem;
+      border: 1px solid var(--green);
+      color: var(--green);
+      text-decoration: none;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      transition: background 0.25s, color 0.25s, box-shadow 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:hover {
+      background: var(--green);
+      color: #000;
+      box-shadow: 0 0 20px var(--green), 0 0 40px rgba(0,255,65,0.3);
+    }
+
+    .scroll-indicator {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--text-dim);
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      animation: bounce 2s ease-in-out infinite;
+    }
+
+    .scroll-indicator::after {
+      content: '▼';
+      color: var(--green-dim);
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(8px); }
+    }
+
+    /* ── SECTIONS ── */
+    section {
+      position: relative;
+      z-index: 1;
+      padding: 6rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      color: var(--green-dim);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 700;
+      color: var(--green);
+      text-shadow: 0 0 15px rgba(0,255,65,0.3);
+      margin-bottom: 1rem;
+    }
+
+    .section-divider {
+      width: 80px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--green), transparent);
+      margin-bottom: 3rem;
+    }
+
+    /* full-width section wrapper */
+    .section-wrap {
+      background: var(--surface);
+      border-top: 1px solid rgba(0,255,65,0.1);
+      border-bottom: 1px solid rgba(0,255,65,0.1);
+    }
+
+    .section-wrap-alt {
+      background: var(--surface2);
+      border-top: 1px solid rgba(0,255,65,0.08);
+      border-bottom: 1px solid rgba(0,255,65,0.08);
+    }
+
+    /* ── APIE ── */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+
+    .about-text p {
+      color: var(--text);
+      line-height: 1.9;
+      margin-bottom: 1.2rem;
+      font-size: 0.92rem;
+    }
+
+    .about-text p::before {
+      content: '> ';
+      color: var(--green);
+    }
+
+    .about-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .stat-card {
+      background: rgba(0,255,65,0.04);
+      border: 1px solid rgba(0,255,65,0.15);
+      padding: 1.5rem;
+      transition: border-color 0.3s, background 0.3s, transform 0.3s;
+    }
+
+    .stat-card:hover {
+      border-color: var(--green);
+      background: rgba(0,255,65,0.08);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,255,65,0.1);
+    }
+
+    .stat-num {
+      font-family: 'Orbitron', monospace;
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--green);
+      text-shadow: 0 0 10px var(--green);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      margin-top: 0.3rem;
+    }
+
+    /* ── SKILLS ── */
+    .skills-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .skill-item {
+      background: rgba(0,255,65,0.03);
+      border: 1px solid rgba(0,255,65,0.1);
+      padding: 1.5rem;
+      transition: all 0.3s;
+    }
+
+    .skill-item:hover {
+      border-color: var(--green);
+      background: rgba(0,255,65,0.06);
+      transform: translateX(4px);
+      box-shadow: -4px 0 0 var(--green);
+    }
+
+    .skill-name {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.85rem;
+      color: var(--green);
+      margin-bottom: 0.8rem;
+      letter-spacing: 1px;
+    }
+
+    .skill-bar {
+      background: rgba(0,255,65,0.1);
+      height: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .skill-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green-dim), var(--green));
+      box-shadow: 0 0 8px var(--green);
+      animation: fillBar 2s ease forwards;
+    }
+
+    @keyframes fillBar { from { width: 0 !important; } }
+
+    .skill-desc {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: 0.6rem;
+      line-height: 1.6;
+    }
+
+    /* ── GALERIJA ── */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .gallery-item {
+      position: relative;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      border: 1px solid rgba(0,255,65,0.12);
+      background: #0a0f0a;
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
+
+    .gallery-item:hover {
+      border-color: var(--green);
+      box-shadow: 0 0 20px rgba(0,255,65,0.15);
+    }
+
+    .gallery-item:hover .gallery-overlay { opacity: 1; }
+    .gallery-item:hover .gallery-img { transform: scale(1.08); filter: brightness(0.5) saturate(0.3) hue-rotate(80deg); }
+
+    .gallery-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: brightness(0.7) saturate(0.4) hue-rotate(80deg);
+      transition: transform 0.4s, filter 0.4s;
+    }
+
+    .gallery-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,255,65,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem;
+      color: var(--green);
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px var(--green);
+      text-align: center;
+      padding: 1rem;
+    }
+
+    /* ── KONTAKTAI ── */
+    .contacts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+    }
+
+    .contact-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.2rem;
+      background: rgba(0,255,65,0.03);
+      border: 1px solid rgba(0,255,65,0.1);
+      transition: all 0.3s;
+    }
+
+    .contact-item:hover {
+      border-color: var(--green-dim);
+      background: rgba(0,255,65,0.06);
+    }
+
+    .contact-icon {
+      font-size: 1.2rem;
+      color: var(--green);
+      min-width: 1.5rem;
+      text-align: center;
+      text-shadow: 0 0 8px var(--green);
+    }
+
+    .contact-label {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 0.3rem;
+    }
+
+    .contact-value {
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .contact-value a {
+      color: var(--green-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .contact-value a:hover { color: var(--green); text-shadow: 0 0 6px var(--green); }
+
+    .map-embed {
+      border: 1px solid rgba(0,255,65,0.15);
+      overflow: hidden;
+      filter: invert(1) hue-rotate(155deg) brightness(0.8) saturate(0.6);
+      transition: filter 0.3s;
+    }
+
+    .map-embed:hover { filter: invert(1) hue-rotate(155deg) brightness(1) saturate(0.8); }
+
+    .map-embed iframe {
+      width: 100%;
+      height: 300px;
+      border: none;
+      display: block;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      background: #050505;
+      border-top: 1px solid rgba(0,255,65,0.15);
+      padding: 3rem 2rem 2rem;
+      text-align: center;
+    }
+
+    .footer-logo {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: var(--green);
+      text-shadow: 0 0 10px var(--green);
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-logo span { color: var(--red); }
+
+    .footer-text {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 1.5rem;
+      line-height: 1.7;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .footer-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--green); }
+
+    .footer-copy {
+      font-size: 0.75rem;
+      color: #2a4a2a;
+      border-top: 1px solid rgba(0,255,65,0.07);
+      padding-top: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    /* TERMINAL BLOCK */
+    .terminal {
+      background: #060806;
+      border: 1px solid rgba(0,255,65,0.2);
+      padding: 1.5rem;
+      font-size: 0.82rem;
+      line-height: 1.8;
+      color: var(--text-dim);
+      margin-top: 2rem;
+      position: relative;
+    }
+
+    .terminal::before {
+      content: '● ● ●';
+      position: absolute;
+      top: 0.6rem; left: 1rem;
+      font-size: 0.6rem;
+      color: #333;
+      letter-spacing: 4px;
+    }
+
+    .terminal-line { padding-top: 0.2rem; }
+    .t-prompt { color: var(--green); }
+    .t-cmd { color: var(--text); }
+    .t-out { color: #4a7a4a; }
+    .t-err { color: var(--red); }
+    .t-cyan { color: var(--cyan); }
+
+    /* ANIMATIONS */
+    @keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: none; } }
+
+    .fade-in { animation: fadeIn 0.8s ease forwards; }
+    .fade-in-2 { animation: fadeIn 0.8s 0.2s ease forwards; opacity: 0; }
+    .fade-in-3 { animation: fadeIn 0.8s 0.4s ease forwards; opacity: 0; }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .about-grid, .contacts-grid { grid-template-columns: 1fr; }
+      .about-stats { grid-template-columns: 1fr 1fr; }
+      nav ul { gap: 1rem; }
+      nav ul li a { font-size: 0.75rem; }
+    }
+
+    @media (max-width: 480px) {
+      nav ul { gap: 0.6rem; }
+      .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="matrix-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">HACK<span>LT</span></div>
+  <ul>
+    <li><a href="#apie">Apie</a></li>
+    <li><a href="#igudžiai">Įgūdžiai</a></li>
+    <li><a href="#galerija">Galerija</a></li>
+    <li><a href="#kontaktai">Kontaktai</a></li>
+  </ul>
+</nav>
+
+<!-- HEADER -->
+<header>
+  <div class="header-bg"></div>
+  <div class="header-grid"></div>
+  <div class="header-content">
+    <div class="header-tag fade-in">// sistema inicializuota //</div>
+    <h1 class="header-title fade-in-2">HACKLT</h1>
+    <p class="header-sub fade-in-3">Hakerių pasaulis &gt; Lietuva<span class="cursor"></span></p>
+    <div class="terminal" style="max-width:480px; margin: 2rem auto;">
+      <div class="terminal-line"><span class="t-prompt">root@hacklt:~$</span> <span class="t-cmd">scan --target world</span></div>
+      <div class="terminal-line"><span class="t-out">[OK] Prijungta prie tinklo...</span></div>
+      <div class="terminal-line"><span class="t-out">[OK] Hakerių bazė aktyvi.</span></div>
+      <div class="terminal-line"><span class="t-cyan">[→] Sveiki atvykę į HackLT.</span></div>
+    </div>
+    <a href="#apie" class="btn fade-in-3">Pradėti tyrimą</a>
+  </div>
+  <div class="scroll-indicator">SLINKTI ŽEMYN</div>
+</header>
+
+<!-- APIE -->
+<div class="section-wrap" id="apie">
+<section>
+  <div class="section-label">// 01 – identifikacija</div>
+  <h2 class="section-title">Apie HackLT</h2>
+  <div class="section-divider"></div>
+  <div class="about-grid">
+    <div class="about-text">
+      <p>HackLT yra Lietuvos hakerių bendruomenė, vienijanti etiškai mąstančius technologijų entuziastus, saugumo tyrėjus ir programuotojus iš visos šalies.</p>
+      <p>Mes tyrinėjame skaitmeninių sistemų pažeidžiamumą, kad padėtume organizacijoms apsisaugoti nuo kibernetinių atakų ir duomenų vagystės.</p>
+      <p>Mūsų nariai dalyvauja tarptautiniuose CTF (Capture The Flag) turnyruose, kur laviname savo įgūdžius sprendžiant realias saugumo užduotis ir iššūkius.</p>
+      <p>Etinis hakingoas – tai legali ir vertinga profesija: įmonės samdys specialistus, kurie pirmieji suranda silpnąsias vietas, kol tai nepadarė nusikaltėliai.</p>
+      <p>Jei domina kibernetinis saugumas, programavimas ar tinklų analizė – tu esi tinkamoje vietoje. HackLT – tai ne tik žinios, tai – bendruomenė.</p>
+    </div>
+    <div class="about-stats">
+      <div class="stat-card">
+        <div class="stat-num">247</div>
+        <div class="stat-label">Aktyvūs nariai</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">83</div>
+        <div class="stat-label">CTF pergalės</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">12</div>
+        <div class="stat-label">Metai veikloje</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">1.4K</div>
+        <div class="stat-label">Rasti pažeidžiamumai</div>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- IGUDŽIAI -->
+<div class="section-wrap-alt" id="igudžiai">
+<section>
+  <div class="section-label">// 02 – gebėjimai</div>
+  <h2 class="section-title">Hakerių Įgūdžiai</h2>
+  <div class="section-divider"></div>
+  <div class="skills-list">
+    <div class="skill-item">
+      <div class="skill-name">▸ Tinklo Analizė</div>
+      <div class="skill-bar"><div class="skill-fill" style="width:92%"></div></div>
+      <div class="skill-desc">Wireshark, Nmap, paketų perimimas, tinklo topologijų žemėlapiavimas.</div>
+    </div>
+    <div class="skill-item">
+      <div class="skill-name">▸ Socialinė Inžinerija</div>
+      <div class="skill-bar"><div class="skill-fill" style="width:78%"></div></div>
+      <div class="skill-desc">Phishing kampanijų simuliacija, darbuotojų saugumo mokymai.</div>
+    </div>
+    <div class="skill-item">
+      <div class="skill-name">▸ Kriptografija</div>
+      <div class="skill-bar"><div class="skill-fill" style="width:85%"></div></div>
+      <div class="skill-desc">AES, RSA, hash funkcijos, šifravimo protokolų analizė ir silpnų vietų ieška.</div>
+    </div>
+    <div class="skill-item">
+      <div class="skill-name">▸ Žiniatinklio Saugumas</div>
+      <div class="skill-bar"><div class="skill-fill" style="width:88%"></div></div>
+      <div class="skill-desc">SQL injekcija, XSS, CSRF, Burp Suite, OWASP Top 10 pažeidžiamumai.</div>
+    </div>
+    <div class="skill-item">
+      <div class="skill-name">▸ Atvirkštinė Inžinerija</div>
+      <div class="skill-bar"><div class="skill-fill" style="width:70%"></div></div>
+      <div class="skill-desc">Ghidra, IDA Pro, binarinių failų dekompiliacija, kenkėjiškų programų analizė.</div>
+    </div>
+    <div class="skill-item">
+      <div class="skill-name">▸ Linux &amp; Shell</div>
+      <div class="skill-bar"><div class="skill-fill" style="width:95%"></div></div>
+      <div class="skill-desc">Bash skriptai, privilegijų eskalavimas, failų sistemos analizė, Kali Linux.</div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- GALERIJA -->
+<div class="section-wrap" id="galerija">
+<section>
+  <div class="section-label">// 03 – įrodymai</div>
+  <h2 class="section-title">Galerija</h2>
+  <div class="section-divider"></div>
+  <div class="gallery-grid">
+    <!-- 10 unsplash images - tech/coding/hacker themed -->
+    <div class="gallery-item">
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&q=80" alt="Kodo ekranas"/>
+      <div class="gallery-overlay">KODO ANALIZĖ</div>
+    </div>
+    <div class="gallery-item">
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&q=80" alt="Serverių kambarys"/>
+      <div class="gallery-overlay">SERVERIŲ CENTRAS</div>
+    </div>
+    <div class="gallery-item">
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1542903660-eedba2cda473?w=400&q=80" alt="Klaviatūra"/>
+      <div class="gallery-overlay">ĮRANKIAI</div>
+    </div>
+    <div class="gallery-item">
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&q=80" alt="Tinklas"/>
+      <div class="gallery-overlay">TINKLO ANALIZĖ</div>
+    </div>
+    <div class="gallery-item">
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=80" alt="Kibernetinis saugumas"/>
+      <div class="gallery-overlay">KIBERNETINIS SAUGUMAS</div>
+    </div>
+    <div class="gallery-item">
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=400&q=80" alt="Programavimas"/>
+      <div class="gallery-overlay">PROGRAMAVIMAS</div>
+    </div>
+    <div class="gallery-item">
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&q=80" alt="Technika"/>
+      <div class="gallery-overlay">APARATŪRA</div>
+    </div>
+    <div class="gallery-item">
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?w=400&q=80" alt="Terminalas"/>
+      <div class="gallery-overlay">TERMINALAS</div>
+    </div>
+    <div class="gallery-item">
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=400&q=80" alt="Šifravimas"/>
+      <div class="gallery-overlay">ŠIFRAVIMAS</div>
+    </div>
+    <div class="gallery-item">
+      <img class="gallery-img" src="https://images.unsplash.com/photo-1531482615713-2afd69097998?w=400&q=80" alt="CTF varžybos"/>
+      <div class="gallery-overlay">CTF VARŽYBOS</div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- KONTAKTAI -->
+<div class="section-wrap-alt" id="kontaktai">
+<section>
+  <div class="section-label">// 04 – ryšys</div>
+  <h2 class="section-title">Kontaktai</h2>
+  <div class="section-divider"></div>
+  <div class="contacts-grid">
+    <div class="contact-info">
+      <div class="contact-item">
+        <div class="contact-icon">✉</div>
+        <div>
+          <div class="contact-label">El. paštas</div>
+          <div class="contact-value"><a href="mailto:info@hacklt.lt">info@hacklt.lt</a></div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">◉</div>
+        <div>
+          <div class="contact-label">Adresas</div>
+          <div class="contact-value">Tilžės g. 18, Šiauliai, LT-76296</div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">⬡</div>
+        <div>
+          <div class="contact-label">Google Maps</div>
+          <div class="contact-value"><a href="https://maps.google.com/?q=Šiauliai,+Lietuva" target="_blank" rel="noopener">Rodyti žemėlapyje →</a></div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">⌘</div>
+        <div>
+          <div class="contact-label">GitHub</div>
+          <div class="contact-value"><a href="https://github.com" target="_blank" rel="noopener">github.com/hacklt</a></div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">◈</div>
+        <div>
+          <div class="contact-label">Instagram</div>
+          <div class="contact-value"><a href="https://instagram.com" target="_blank" rel="noopener">@hacklt.lt</a></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="map-embed">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d71015.44!2d23.2888!3d55.9349!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46e5e0d1d6073af1%3A0x400d18c70e9d720!2sSiauliai%2C+Lithuania!5e0!3m2!1sen!2slt!4v1"
+          allowfullscreen=""
+          loading="lazy">
+        </iframe>
+      </div>
+      <div class="terminal" style="margin-top:1rem;">
+        <div class="terminal-line"><span class="t-prompt">root@hacklt:~$</span> <span class="t-cmd">ping hacklt.lt</span></div>
+        <div class="terminal-line"><span class="t-out">64 bytes from hacklt.lt: icmp_seq=1 ttl=64</span></div>
+        <div class="terminal-line"><span class="t-out">64 bytes from hacklt.lt: icmp_seq=2 ttl=64</span></div>
+        <div class="terminal-line"><span class="t-cyan">Atsakymo laikas: 4ms ✓</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">HACK<span>LT</span></div>
+  <p class="footer-text">
+    Etinis hakingoas. Kibernetinis saugumas. Lietuvos hakerių bendruomenė.<br/>
+    Žinios, kuriomis galima pasitikėti.
+  </p>
+  <div class="footer-links">
+    <a href="#apie">Apie</a>
+    <a href="#igudžiai">Įgūdžiai</a>
+    <a href="#galerija">Galerija</a>
+    <a href="#kontaktai">Kontaktai</a>
+  </div>
+  <div class="footer-copy">
+    © 2026 HackLT. Visos teisės saugomos. Sukurta su ❤ ir kodu.
+  </div>
+</footer>
+
+<script>
+  // Matrix rain effect
+  const canvas = document.getElementById('matrix-canvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEF<>{}[]|\\/*&^%$#@!';
+  const fontSize = 14;
+  let columns = Math.floor(canvas.width / fontSize);
+  let drops = Array(columns).fill(1);
+
+  function drawMatrix() {
+    ctx.fillStyle = 'rgba(0,0,0,0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#00ff41';
+    ctx.font = fontSize + 'px Share Tech Mono, monospace';
+
+    columns = Math.floor(canvas.width / fontSize);
+    if (drops.length < columns) drops.push(...Array(columns - drops.length).fill(1));
+
+    for (let i = 0; i < columns; i++) {
+      const char = chars[Math.floor(Math.random() * chars.length)];
+      ctx.fillStyle = Math.random() > 0.95 ? '#ffffff' : '#00ff41';
+      ctx.globalAlpha = Math.random() * 0.5 + 0.3;
+      ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  setInterval(drawMatrix, 55);
+
+  // Smooth nav highlighting
+  const sections = document.querySelectorAll('section, header');
+  const navLinks = document.querySelectorAll('nav a');
+
+  window.addEventListener('scroll', () => {
+    let current = '';
+    document.querySelectorAll('[id]').forEach(el => {
+      if (window.scrollY >= el.offsetTop - 80) current = el.id;
+    });
+    navLinks.forEach(a => {
+      a.style.color = a.getAttribute('href') === '#' + current ? 'var(--green)' : '';
+    });
+  });
+</script>
+</body>
+</html>
